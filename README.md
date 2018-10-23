@@ -3,8 +3,10 @@ Simple old game written for Python 3 + PySide2
 
 https://en.wikipedia.org/wiki/Tower_of_Hanoi
 
+![Rainbow colors, dark background](screenshots/dark-bg.png)
+
+![Natural colors, light background](screenshots/light-bg.png)
+
 ### to do:
-* display stones as vector graphics
-* change the Difficulty setting dialog to contain five 100x100 pushbuttons with icons
-* keep track of the best result for each difficulty level
-* make two or three nice color schemes with different color for each stone
+* write a short info about the rules of the game (Help > How to play, add icon of e.g. a book)
+* allow to play by clicking on the towers themselves (and possibly remove the pushbuttons)
