@@ -13,8 +13,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setWindowTitle("Tower of Hanoi")
         self.resize(640, 400)
 
-        self.numStones = 3
-        self.stoneHeight = 16
+        self.numDisks = 3
+        self.diskHeight = 16
         # Colors for "Natural"
         self.darkBrown = QtGui.QColor(0xff71481b)   # (0xff87551f)
         self.lightBrown = QtGui.QColor(0xffda9e5e)  # (0xffd59149)
@@ -44,7 +44,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.zx5 = QtGui.QColor(0xff00b2b2)
         self.zx6 = QtGui.QColor(0xffb2b200)
         self.zx7 = QtGui.QColor(0xffb2b2b2)
-        self.stoneOutline = self.base02
+        self.diskOutline = self.base02
 
         menu = self.menuBar()
         menuGame = menu.addMenu("&Game")
@@ -61,12 +61,12 @@ class MainWindow(QtWidgets.QMainWindow):
         item_G_R.setShortcut("Ctrl+R")     # alternatively: item_G_R.setShortcut(QtGui.QKeySequence("Ctrl+R"))
         item_G_D.setShortcut("Ctrl+D")
         item_G_Q.setShortcut("Ctrl+Q")
-        item_G_R.setStatusTip("Restart with the same number of stones (Ctrl+R)")
-        item_G_D.setStatusTip("Choose number of stones and restart (Ctrl+D)")
+        item_G_R.setStatusTip("Restart with the same number of disks (Ctrl+R)")
+        item_G_D.setStatusTip("Choose number of disks and restart (Ctrl+D)")
         item_G_Q.setStatusTip("Close the application")
 
         menuColors = menu.addMenu("&Colors")
-        item_C_N = QtWidgets.QAction(QtGui.QIcon("icons/7stones.png"), "&Natural", self)
+        item_C_N = QtWidgets.QAction(QtGui.QIcon("icons/7disks.png"), "&Natural", self)
         item_C_R = QtWidgets.QAction(QtGui.QIcon("icons/solarized.png"), "&Rainbow", self)
         item_C_S = QtWidgets.QAction(QtGui.QIcon("icons/speccy.png"), "&Speccy", self)
         item_C_D = QtWidgets.QAction(QtGui.QIcon("icons/dark.png"), "&Dark background", self)
@@ -142,7 +142,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_state(self):
         self.numMoves = 0
-        self.target = list(range(self.numStones, 0, -1))
+        self.target = list(range(self.numDisks, 0, -1))
         self.stacks = [self.target[:], [], []]    # [:] for an independent copy
         self.hand = 0
         self.prepare_pushbuttons("pick")
@@ -170,7 +170,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.draw_hand()
             self.statusBar().clearMessage()
             self.prepare_pushbuttons("pick")
-            if n != self.lastPick:    # returning a stone to the same position won't count as a move
+            if n != self.lastPick:    # returning a disk to the same position won't count as a move
                 self.numMoves += 1
                 self.content.message.setText("Moves: " + str(self.numMoves))
             if n == 2 and stack == self.target:    # when dropping on tower 3, test if we are finished
@@ -227,15 +227,15 @@ class MainWindow(QtWidgets.QMainWindow):
         painter.setBrush(self.base00)
         baseWidth = 180
         baseTop = 177
-        pegWidth = 6
-        pegTop = 40
+        rodWidth = 6
+        rodTop = 40
         painter.drawRect((img.width() - baseWidth)//2, baseTop, baseWidth, 10)
-        painter.drawRect((img.width() - pegWidth)//2, pegTop, pegWidth, baseTop - pegTop)
-        painter.setPen(self.stoneOutline)
+        painter.drawRect((img.width() - rodWidth)//2, rodTop, rodWidth, baseTop - rodTop)
+        painter.setPen(self.diskOutline)
         for i, x in enumerate(stack):
             painter.setBrush(self.listColors[x - 1])
-            stoneWidth = 40 + 20*(x - 1)
-            painter.drawRect((img.width() - stoneWidth)//2, baseTop - 1 - (i+1)*self.stoneHeight, stoneWidth, self.stoneHeight)
+            diskWidth = 40 + 20*(x - 1)
+            painter.drawRect((img.width() - diskWidth)//2, baseTop - 1 - (i+1)*self.diskHeight, diskWidth, self.diskHeight)
         painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
         tower.setPixmap(pixmap)
@@ -246,10 +246,10 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.hand:
             painter = QtGui.QPainter()
             painter.begin(img)
-            painter.setPen(self.stoneOutline)
+            painter.setPen(self.diskOutline)
             painter.setBrush(self.listColors[self.hand - 1])
-            stoneWidth = 40 + 20*(self.hand - 1)
-            painter.drawRect((img.width() - stoneWidth)//2, (img.height() - self.stoneHeight)//2, stoneWidth, self.stoneHeight)
+            diskWidth = 40 + 20*(self.hand - 1)
+            painter.drawRect((img.width() - diskWidth)//2, (img.height() - self.diskHeight)//2, diskWidth, self.diskHeight)
             painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
         self.content.hand.setPixmap(pixmap)
@@ -268,7 +268,7 @@ class MainWindow(QtWidgets.QMainWindow):
         else:
             setting = self.color_setting
         if setting == "natural":
-            self.listColors = self.calculate_range(self.darkBrown, self.lightBrown, self.numStones)
+            self.listColors = self.calculate_range(self.darkBrown, self.lightBrown, self.numDisks)
         elif setting == "rainbow":
             self.listColors = [self.yellow, self.orange, self.red, self.magenta, self.violet, self.blue, self.cyan]
         elif setting == "speccy":
@@ -290,22 +290,22 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialog.setWindowTitle("Difficulty setting")
         self.dialog.resize(320, 200)
         self.dialog.groupRB = QtWidgets.QButtonGroup()
-        rbutton3 = QtWidgets.QRadioButton("3 stones")
-        rbutton4 = QtWidgets.QRadioButton("4 stones")
-        rbutton5 = QtWidgets.QRadioButton("5 stones")
-        rbutton6 = QtWidgets.QRadioButton("6 stones")
-        rbutton7 = QtWidgets.QRadioButton("7 stones")
-        rbutton3.setIcon(QtGui.QIcon("icons/3stones.png"))
-        rbutton4.setIcon(QtGui.QIcon("icons/4stones.png"))
-        rbutton5.setIcon(QtGui.QIcon("icons/5stones.png"))
-        rbutton6.setIcon(QtGui.QIcon("icons/6stones.png"))
-        rbutton7.setIcon(QtGui.QIcon("icons/7stones.png"))
+        rbutton3 = QtWidgets.QRadioButton("3 disks")
+        rbutton4 = QtWidgets.QRadioButton("4 disks")
+        rbutton5 = QtWidgets.QRadioButton("5 disks")
+        rbutton6 = QtWidgets.QRadioButton("6 disks")
+        rbutton7 = QtWidgets.QRadioButton("7 disks")
+        rbutton3.setIcon(QtGui.QIcon("icons/3disks.png"))
+        rbutton4.setIcon(QtGui.QIcon("icons/4disks.png"))
+        rbutton5.setIcon(QtGui.QIcon("icons/5disks.png"))
+        rbutton6.setIcon(QtGui.QIcon("icons/6disks.png"))
+        rbutton7.setIcon(QtGui.QIcon("icons/7disks.png"))
         self.dialog.groupRB.addButton(rbutton3, id=3)
         self.dialog.groupRB.addButton(rbutton4, id=4)
         self.dialog.groupRB.addButton(rbutton5, id=5)
         self.dialog.groupRB.addButton(rbutton6, id=6)
         self.dialog.groupRB.addButton(rbutton7, id=7)
-        self.dialog.groupRB.button(self.numStones).setChecked(True)
+        self.dialog.groupRB.button(self.numDisks).setChecked(True)
         buttonOK = QtWidgets.QPushButton("OK")
         buttonOK.clicked.connect(self.set_difficulty)
         layout = QtWidgets.QGridLayout()
@@ -319,14 +319,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialog.show()
 
     def set_difficulty(self):
-        self.numStones = self.dialog.groupRB.checkedId()
+        self.numDisks = self.dialog.groupRB.checkedId()
         self.dialog.close()
         self.init_state()
 
     def about_message(self):
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("About Tower of Hanoi")
-        pixmapIcon = QtGui.QPixmap("icons/5stones.png")
+        pixmapIcon = QtGui.QPixmap("icons/5disks.png")
         msg.setIconPixmap(pixmapIcon)
         msg.setText("""<center><b>Tower of Hanoi</b><p>version 0.7.9, 23th October 2018</p>
                        <p>Written in <a href="https://wiki.qt.io/Qt_for_Python">Qt for Python</a> (PySide2).</p>
