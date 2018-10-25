@@ -1,9 +1,6 @@
 #!/usr/bin/python
 # coding: utf-8
 
-# TO DO:
-# radiobuttons do for cyklu?
-
 from PySide2 import QtWidgets, QtCore, QtGui
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -31,11 +28,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.yellow = QtGui.QColor(0xffb58900)             #  yellow
         self.orange = QtGui.QColor(0xffcb4b16)             #  orange
         self.red = QtGui.QColor(0xffdc322f)                #  red
-        self.magenta = QtGui.QColor(0xffd33682)            #  magenta
+        # self.magenta = QtGui.QColor(0xffd33682)            #  magenta
         self.violet = QtGui.QColor(0xff6c71c4)             #  violet
         self.blue = QtGui.QColor(0xff268bd2)               #  blue
         self.cyan = QtGui.QColor(0xff2aa198)               #  cyan
-        # self.green = QtGui.QColor(0xff859900)              #  green
+        self.green = QtGui.QColor(0xff859900)              #  green
         # Colors for "Speccy"
         self.zx1 = QtGui.QColor(0xff0000b2)
         self.zx2 = QtGui.QColor(0xffb20000)
@@ -93,6 +90,7 @@ class MainWindow(QtWidgets.QMainWindow):
         item_H_A = QtWidgets.QAction("&About...", self)
         menuHelp.addAction(item_H_H)
         menuHelp.addAction(item_H_A)
+        item_H_H.triggered.connect(self.help_message)
         item_H_A.triggered.connect(self.about_message)
 
         toolBar = self.addToolBar("Tools")
@@ -125,14 +123,14 @@ class MainWindow(QtWidgets.QMainWindow):
         self.content.message.setAlignment(QtCore.Qt.AlignCenter)
 
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(self.content.button1, 4, 1)
-        layout.addWidget(self.content.button2, 4, 2)
-        layout.addWidget(self.content.button3, 4, 3)
-        layout.addWidget(self.content.hand, 9, 1, 1, 3, QtCore.Qt.AlignCenter)
-        layout.addWidget(self.content.tower1, 10, 1)
-        layout.addWidget(self.content.tower2, 10, 2)
-        layout.addWidget(self.content.tower3, 10, 3)
-        layout.addWidget(self.content.message, 12, 1, 1, 3)
+        layout.addWidget(self.content.button1, 0, 1)
+        layout.addWidget(self.content.button2, 0, 2)
+        layout.addWidget(self.content.button3, 0, 3)
+        layout.addWidget(self.content.hand, 1, 1, 1, 3, QtCore.Qt.AlignCenter)
+        layout.addWidget(self.content.tower1, 2, 1)
+        layout.addWidget(self.content.tower2, 2, 2)
+        layout.addWidget(self.content.tower3, 2, 3)
+        layout.addWidget(self.content.message, 3, 1, 1, 3)
         self.content.setLayout(layout)
         self.setCentralWidget(self.content)
         self.color_setting = "rainbow"
@@ -172,9 +170,9 @@ class MainWindow(QtWidgets.QMainWindow):
             self.prepare_pushbuttons("pick")
             if n != self.lastPick:    # returning a disk to the same position won't count as a move
                 self.numMoves += 1
-                self.content.message.setText("Moves: " + str(self.numMoves))
+                self.content.message.setText("Moves: {}".format(self.numMoves))
             if n == 2 and stack == self.target:    # when dropping on tower 3, test if we are finished
-                self.content.message.setText("Congratulations, puzzle solved in " + str(self.numMoves) + " moves")
+                self.content.message.setText("Congratulations, puzzle solved in {} moves".format(self.numMoves))
                 for btn in [self.content.button1, self.content.button2, self.content.button3]:
                     btn.setIcon(QtGui.QIcon("icons/ok.png"))
                     btn.setEnabled(False)
@@ -184,20 +182,18 @@ class MainWindow(QtWidgets.QMainWindow):
     def prepare_pushbuttons(self, for_what):
         for i in range(3):
             btn = [self.content.button1, self.content.button2, self.content.button3][i]
-            key = str(i + 1)
+            key = "{}".format(i + 1)
             if for_what == "pick" and self.can_be_picked(i):
                 btn.setIcon(QtGui.QIcon("icons/up.png"))
                 btn.setEnabled(True)
                 btn.setShortcut(key)
-                btn.setStatusTip("Pick from the " + ["first", "second", "third"][i] + " tower (" + key + ")")
-                btn.setAutoRepeat(False)           # not working
+                btn.setStatusTip("Pick from the {} tower ({})".format(["first", "second", "third"][i], key))
                 btn.setShortcutAutoRepeat(False)   # not working
             elif for_what == "drop" and self.can_be_dropped(i):
                 btn.setIcon(QtGui.QIcon("icons/down.png"))
                 btn.setEnabled(True)
                 btn.setShortcut(key)
-                btn.setStatusTip("Drop on the " + ["first", "second", "third"][i] + " tower (" + key + ")")
-                btn.setAutoRepeat(False)           # not working
+                btn.setStatusTip("Drop on the {} tower ({})".format(["first", "second", "third"][i], key))
                 btn.setShortcutAutoRepeat(False)   # not working
             else:
                 btn.setIcon(QtGui.QIcon("icons/forbidden.png"))
@@ -235,7 +231,7 @@ class MainWindow(QtWidgets.QMainWindow):
         for i, x in enumerate(stack):
             painter.setBrush(self.listColors[x - 1])
             diskWidth = 40 + 20*(x - 1)
-            painter.drawRect((img.width() - diskWidth)//2, baseTop - 1 - (i+1)*self.diskHeight, diskWidth, self.diskHeight)
+            painter.drawRoundedRect((img.width() - diskWidth)//2, baseTop - 1 - (i+1)*self.diskHeight, diskWidth, self.diskHeight, 0, 0)
         painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
         tower.setPixmap(pixmap)
@@ -249,7 +245,7 @@ class MainWindow(QtWidgets.QMainWindow):
             painter.setPen(self.diskOutline)
             painter.setBrush(self.listColors[self.hand - 1])
             diskWidth = 40 + 20*(self.hand - 1)
-            painter.drawRect((img.width() - diskWidth)//2, (img.height() - self.diskHeight)//2, diskWidth, self.diskHeight)
+            painter.drawRoundedRect((img.width() - diskWidth)//2, (img.height() - self.diskHeight)//2, diskWidth, self.diskHeight, 0, 0)
             painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
         self.content.hand.setPixmap(pixmap)
@@ -257,9 +253,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def calculate_range(self, color1, color2, n):
         result = []
         for i in range(n):
-            result.append(QtGui.QColor(color1.red() + (color2.red() - color1.red())*i/n,
-                                       color1.green() + (color2.green() - color1.green())*i/n,
-                                       color1.blue() + (color2.blue() - color1.blue())*i/n))
+            result.append(QtGui.QColor(color1.red() + i/n*(color2.red() - color1.red()),
+                                       color1.green() + i/n*(color2.green() - color1.green()),
+                                       color1.blue() + i/n*(color2.blue() - color1.blue())))
         return result
 
     def set_colors(self, setting=None):
@@ -270,7 +266,7 @@ class MainWindow(QtWidgets.QMainWindow):
         if setting == "natural":
             self.listColors = self.calculate_range(self.darkBrown, self.lightBrown, self.numDisks)
         elif setting == "rainbow":
-            self.listColors = [self.yellow, self.orange, self.red, self.magenta, self.violet, self.blue, self.cyan]
+            self.listColors = [self.red, self.orange, self.yellow, self.green, self.cyan, self.blue, self.violet]
         elif setting == "speccy":
             self.listColors = [self.zx7, self.zx6, self.zx5, self.zx4, self.zx3, self.zx2, self.zx1]
         for i in range(3):
@@ -289,46 +285,40 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dialog = QtWidgets.QDialog()
         self.dialog.setWindowTitle("Difficulty setting")
         self.dialog.resize(320, 200)
-        self.dialog.groupRB = QtWidgets.QButtonGroup()
-        rbutton3 = QtWidgets.QRadioButton("3 disks")
-        rbutton4 = QtWidgets.QRadioButton("4 disks")
-        rbutton5 = QtWidgets.QRadioButton("5 disks")
-        rbutton6 = QtWidgets.QRadioButton("6 disks")
-        rbutton7 = QtWidgets.QRadioButton("7 disks")
-        rbutton3.setIcon(QtGui.QIcon("icons/3disks.png"))
-        rbutton4.setIcon(QtGui.QIcon("icons/4disks.png"))
-        rbutton5.setIcon(QtGui.QIcon("icons/5disks.png"))
-        rbutton6.setIcon(QtGui.QIcon("icons/6disks.png"))
-        rbutton7.setIcon(QtGui.QIcon("icons/7disks.png"))
-        self.dialog.groupRB.addButton(rbutton3, id=3)
-        self.dialog.groupRB.addButton(rbutton4, id=4)
-        self.dialog.groupRB.addButton(rbutton5, id=5)
-        self.dialog.groupRB.addButton(rbutton6, id=6)
-        self.dialog.groupRB.addButton(rbutton7, id=7)
-        self.dialog.groupRB.button(self.numDisks).setChecked(True)
-        buttonOK = QtWidgets.QPushButton("OK")
-        buttonOK.clicked.connect(self.set_difficulty)
+        rbuttonGroup = QtWidgets.QButtonGroup()
         layout = QtWidgets.QGridLayout()
-        layout.addWidget(rbutton3, 1, 1)
-        layout.addWidget(rbutton4, 1, 2)
-        layout.addWidget(rbutton5, 2, 1)
-        layout.addWidget(rbutton6, 2, 2)
-        layout.addWidget(rbutton7, 3, 1)
-        layout.addWidget(buttonOK, 5, 1, 1, 2)
+        for i in range(3, 8):
+            rbutton = QtWidgets.QRadioButton("{} disks".format(i))
+            rbutton.setIcon(QtGui.QIcon("icons/{}disks.png".format(i)))
+            rbutton.setIconSize(QtCore.QSize(48, 48))
+            rbuttonGroup.addButton(rbutton, id=i)
+            layout.addWidget(rbutton, (i - 3)//2, 1 - i%2)
+        rbuttonGroup.button(self.numDisks).setChecked(True)
+        buttonOK = QtWidgets.QPushButton("OK")
+        buttonOK.clicked.connect(lambda: self.set_difficulty(rbuttonGroup.checkedId()))
+        layout.addWidget(buttonOK, 3, 0, 1, 2)
         self.dialog.setLayout(layout)
         self.dialog.show()
 
-    def set_difficulty(self):
-        self.numDisks = self.dialog.groupRB.checkedId()
+    def set_difficulty(self, n):
+        self.numDisks = n
         self.dialog.close()
         self.init_state()
+
+    def help_message(self):
+        msg = QtWidgets.QMessageBox()
+        msg.setWindowTitle("How to play")
+        msg.setIconPixmap(QtGui.QPixmap("icons/5disks.png"))
+        msg.setText("""<center>Goal of the game</p>
+                       <p>The optimum number of moves is always <b>2<sup>n</sup>-1</b>,<br/>where <b>n</b> is the number of disks.</p>
+                       <p>Source: <a href="https://en.wikipedia.org/wiki/Tower_of_Hanoi">Wikipedia</a></p></center>""")
+        msg.exec_()
 
     def about_message(self):
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("About Tower of Hanoi")
-        pixmapIcon = QtGui.QPixmap("icons/5disks.png")
-        msg.setIconPixmap(pixmapIcon)
-        msg.setText("""<center><b>Tower of Hanoi</b><p>version 0.7.9, 23th October 2018</p>
+        msg.setIconPixmap(QtGui.QPixmap("icons/5disks.png"))
+        msg.setText("""<center><b>Tower of Hanoi</b><p>version 0.9, 25th October 2018</p>
                        <p>Written in <a href="https://wiki.qt.io/Qt_for_Python">Qt for Python</a> (PySide2).</p>
                        <p>Hosted at <a href="https://github.com/myrmica-habilis/tower-of-hanoi">Github</a>.</p>
                        <p>Rainbow colors by <a href="https://ethanschoonover.com/solarized">Solarized</a>.</p></center>""")

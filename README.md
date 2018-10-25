@@ -4,9 +4,11 @@ Simple old puzzle game written in Python & Qt for Python (PySide2)
 https://en.wikipedia.org/wiki/Tower_of_Hanoi
 
 Screenshot with six disks:
+
 ![Rainbow colors, dark background](screenshots/dark-bg.png)
 
 Screenshot with seven disks:
+
 ![Natural colors, light background](screenshots/light-bg.png)
 
 ### To do:
