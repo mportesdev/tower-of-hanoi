@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from PySide2 import QtWidgets, QtCore, QtGui
+import functools
 
 class MainWindow(QtWidgets.QMainWindow):
 
@@ -50,6 +51,7 @@ class MainWindow(QtWidgets.QMainWindow):
         item_G_Q = QtWidgets.QAction(QtGui.QIcon("icons/exit.png"), "&Quit", self)
         menuGame.addAction(item_G_R)
         menuGame.addAction(item_G_D)
+        menuGame.addSeparator()
         menuGame.addSeparator()
         menuGame.addAction(item_G_Q)
         item_G_R.triggered.connect(self.init_state)
@@ -107,36 +109,28 @@ class MainWindow(QtWidgets.QMainWindow):
         self.content = QtWidgets.QLabel()
         self.content.setAutoFillBackground(True)
 
-        self.content.button1 = QtWidgets.QPushButton()
-        self.content.button2 = QtWidgets.QPushButton()
-        self.content.button3 = QtWidgets.QPushButton()
-        self.content.button1.clicked.connect(lambda: self.pick_or_drop(0))
-        self.content.button2.clicked.connect(lambda: self.pick_or_drop(1))
-        self.content.button3.clicked.connect(lambda: self.pick_or_drop(2))
+        layout = QtWidgets.QGridLayout()
+        self.content.pushButtons = []
+        self.content.towers = []
+        for i in range(3):
+            button = QtWidgets.QPushButton()
+            button.setFixedHeight(50)
+            button.clicked.connect(functools.partial(self.pick_or_drop, i))
+            layout.addWidget(button, 0, i)
+            self.content.pushButtons.append(button)
+            tower = QtWidgets.QLabel()
+            layout.addWidget(tower, 2, i, 1, 1, QtCore.Qt.AlignCenter)
+            self.content.towers.append(tower)
 
         self.content.hand = QtWidgets.QLabel()
-        self.content.tower1 = QtWidgets.QLabel()
-        self.content.tower2 = QtWidgets.QLabel()
-        self.content.tower3 = QtWidgets.QLabel()
-
         self.content.message = QtWidgets.QLabel()
-        self.content.message.setAlignment(QtCore.Qt.AlignCenter)
-
-        layout = QtWidgets.QGridLayout()
-        layout.addWidget(self.content.button1, 0, 1)
-        layout.addWidget(self.content.button2, 0, 2)
-        layout.addWidget(self.content.button3, 0, 3)
-        layout.addWidget(self.content.hand, 1, 1, 1, 3, QtCore.Qt.AlignCenter)
-        layout.addWidget(self.content.tower1, 2, 1)
-        layout.addWidget(self.content.tower2, 2, 2)
-        layout.addWidget(self.content.tower3, 2, 3)
-        layout.addWidget(self.content.message, 3, 1, 1, 3)
+        layout.addWidget(self.content.hand, 1, 0, 1, 3, QtCore.Qt.AlignCenter)
+        layout.addWidget(self.content.message, 3, 0, 1, 3, QtCore.Qt.AlignCenter)
         self.content.setLayout(layout)
         self.setCentralWidget(self.content)
         self.color_setting = "rainbow"
         self.set_fg_bg(fg=self.base1, bg=self.base03)
         self.init_state()
-        # print(item_G_Q.shortcut(), self.content.button1.shortcut())
 
     def init_state(self):
         self.numMoves = 0
@@ -147,20 +141,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.set_colors()
         self.content.message.setText("")
         self.statusBar().clearMessage()
-        self.pick_or_drop = self.pick
 
     def pick(self, n):
-        if self.can_be_picked(n):
+        if self.stacks[n]:
             self.lastPick = n
             self.hand = self.stacks[n].pop()
             self.draw_tower(n)
             self.draw_hand()
             self.statusBar().clearMessage()
             self.prepare_pushbuttons("drop")
-            self.pick_or_drop = self.drop
 
     def drop(self, n):
-        if self.can_be_dropped(n):
+        if self.stacks[n] == [] or self.stacks[n][-1] > self.hand:
             stack = self.stacks[n]
             stack.append(self.hand)
             self.draw_tower(n)
@@ -168,28 +160,35 @@ class MainWindow(QtWidgets.QMainWindow):
             self.draw_hand()
             self.statusBar().clearMessage()
             self.prepare_pushbuttons("pick")
-            if n != self.lastPick:    # returning a disk to the same position won't count as a move
+            # returning a disk to the same position won't count as a move
+            if n != self.lastPick:
                 self.numMoves += 1
                 self.content.message.setText("Moves: {}".format(self.numMoves))
-            if n == 2 and stack == self.target:    # when dropping on tower 3, test if we are finished
+            # when dropping on tower 2 or 3, test if we are finished
+            if (n == 1 and stack == self.target) or (n == 2 and stack == self.target):
                 self.content.message.setText("Congratulations, puzzle solved in {} moves".format(self.numMoves))
-                for btn in [self.content.button1, self.content.button2, self.content.button3]:
+                for btn in self.content.pushButtons:
                     btn.setIcon(QtGui.QIcon("icons/ok.png"))
                     btn.setEnabled(False)
                     btn.setStatusTip("")
-            self.pick_or_drop = self.pick
+
+    def pick_or_drop(self, n):
+        if self.hand:
+            self.drop(n)
+        else:
+            self.pick(n)
 
     def prepare_pushbuttons(self, for_what):
         for i in range(3):
-            btn = [self.content.button1, self.content.button2, self.content.button3][i]
+            btn = self.content.pushButtons[i]
             key = "{}".format(i + 1)
-            if for_what == "pick" and self.can_be_picked(i):
+            if for_what == "pick" and self.stacks[i]:
                 btn.setIcon(QtGui.QIcon("icons/up.png"))
                 btn.setEnabled(True)
                 btn.setShortcut(key)
                 btn.setStatusTip("Pick from the {} tower ({})".format(["first", "second", "third"][i], key))
                 btn.setShortcutAutoRepeat(False)   # not working
-            elif for_what == "drop" and self.can_be_dropped(i):
+            elif for_what == "drop" and (self.stacks[i] == [] or self.stacks[i][-1] > self.hand):
                 btn.setIcon(QtGui.QIcon("icons/down.png"))
                 btn.setEnabled(True)
                 btn.setShortcut(key)
@@ -200,20 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 btn.setEnabled(False)
                 btn.setStatusTip("")
 
-    def can_be_picked(self, n):
-        if self.stacks[n]:
-            return True
-        else:
-            return False
-
-    def can_be_dropped(self, n):
-        if self.stacks[n] == [] or self.stacks[n][-1] > self.hand:
-            return True
-        else:
-            return False
-
     def draw_tower(self, n):
-        tower = [self.content.tower1, self.content.tower2, self.content.tower3][n]
         stack = self.stacks[n]
         img = QtGui.QImage(200, 200, QtGui.QImage.Format_ARGB32)
         img.fill(self.content.backgroundRole())
@@ -234,7 +220,7 @@ class MainWindow(QtWidgets.QMainWindow):
             painter.drawRoundedRect((img.width() - diskWidth)//2, baseTop - 1 - (i+1)*self.diskHeight, diskWidth, self.diskHeight, 0, 0)
         painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
-        tower.setPixmap(pixmap)
+        self.content.towers[n].setPixmap(pixmap)
 
     def draw_hand(self):
         img = QtGui.QImage(400, 40, QtGui.QImage.Format_ARGB32)
@@ -295,33 +281,37 @@ class MainWindow(QtWidgets.QMainWindow):
             layout.addWidget(rbutton, (i - 3)//2, 1 - i%2)
         rbuttonGroup.button(self.numDisks).setChecked(True)
         buttonOK = QtWidgets.QPushButton("OK")
-        buttonOK.clicked.connect(lambda: self.set_difficulty(rbuttonGroup.checkedId()))
-        layout.addWidget(buttonOK, 3, 0, 1, 2)
+        buttonCancel = QtWidgets.QPushButton("Cancel")
+        buttonOK.clicked.connect(self.dialog.accept)
+        buttonCancel.clicked.connect(self.dialog.reject)
+        self.dialog.accepted.connect(lambda: self.set_difficulty(rbuttonGroup.checkedId()))
+        layout.addWidget(buttonOK, 3, 0)
+        layout.addWidget(buttonCancel, 3, 1)
         self.dialog.setLayout(layout)
         self.dialog.show()
 
     def set_difficulty(self, n):
         self.numDisks = n
-        self.dialog.close()
         self.init_state()
 
     def help_message(self):
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("How to play")
-        msg.setIconPixmap(QtGui.QPixmap("icons/5disks.png"))
-        msg.setText("""<center>Goal of the game</p>
-                       <p>The optimum number of moves is always <b>2<sup>n</sup>-1</b>,<br/>where <b>n</b> is the number of disks.</p>
-                       <p>Source: <a href="https://en.wikipedia.org/wiki/Tower_of_Hanoi">Wikipedia</a></p></center>""")
+        msg.setIconPixmap(QtGui.QPixmap("icons/5disks_color.png"))
+        msg.setText("""<center><p>To pick or drop disks, click on corresponding buttons or use keys 1, 2 and 3.</p>
+<p>The goal of the game is to move the entire stack to another rod, obeying the following simple rules:</p>
+<ul><li>only one disk can be moved at a time</li>
+<li>each move consists of taking the upper disk from one of the stacks and placing it on top of another stack or on an empty rod</li>
+<li>no disk may be placed on top of a smaller disk</li></ul>
+<p>Source: <a href="https://en.wikipedia.org/wiki/Tower_of_Hanoi">Wikipedia</a></p></center>""")
         msg.exec_()
 
     def about_message(self):
         msg = QtWidgets.QMessageBox()
         msg.setWindowTitle("About Tower of Hanoi")
         msg.setIconPixmap(QtGui.QPixmap("icons/5disks.png"))
-        msg.setText("""<center><b>Tower of Hanoi</b><p>version 0.9, 25th October 2018</p>
-                       <p>Written in <a href="https://wiki.qt.io/Qt_for_Python">Qt for Python</a> (PySide2).</p>
-                       <p>Hosted at <a href="https://github.com/myrmica-habilis/tower-of-hanoi">Github</a>.</p>
-                       <p>Rainbow colors by <a href="https://ethanschoonover.com/solarized">Solarized</a>.</p></center>""")
+        msg.setText("""<center><b>Tower of Hanoi</b><p>version 0.9.5, 6th November 2018</p>
+<p>Hosted at <a href="https://github.com/myrmica-habilis/tower-of-hanoi">Github</a>.</p></center>""")
         msg.exec_()
 
     def run(self, app):

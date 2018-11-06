@@ -3,15 +3,14 @@ Simple old puzzle game written in Python & Qt for Python (PySide2)
 
 https://en.wikipedia.org/wiki/Tower_of_Hanoi
 
-Screenshot with six disks:
+Screenshot:
 
-![Rainbow colors, dark background](screenshots/dark-bg.png)
+![Screenshot – dark background, rainbow colors, six disks](screenshots/dark-bg.png)
 
-Screenshot with seven disks:
+Screenshot:
 
-![Natural colors, light background](screenshots/light-bg.png)
+![Screenshot – light background, natural colors, seven disks](screenshots/light-bg.png)
 
 ### To do:
-* write a short info & the rules of the game (Help > How to play, with an icon of e.g. a book)
 * allow to play by clicking on the towers themselves (and possibly remove the pushbuttons)
-* final polishing of code readability
+* final polishing of code
