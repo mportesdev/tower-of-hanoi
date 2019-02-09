@@ -1,8 +1,74 @@
 #!/usr/bin/python
 # coding: utf-8
 
-import functools
 from PySide2 import QtWidgets, QtCore, QtGui
+
+
+class Tower:
+    """Custom class for a single tower.
+    """
+
+    def __init__(self, parent_app, name, key):
+        self.app = parent_app
+        self.name = name
+        self.key = key
+        self.stack = []
+
+        self.widget = QtWidgets.QLabel()
+        self.pushbutton = QtWidgets.QPushButton()
+        self.pushbutton.setFixedHeight(50)
+        self.pushbutton.clicked.connect(self.pick_or_drop)
+
+    def pick_or_drop(self):
+        if self.app.hand:
+            self.drop()
+        else:
+            self.pick()
+
+    def pick(self):
+        if self.stack:
+            disk_value = self.stack.pop()
+            self.redraw()
+            self.app.pick(self.name, disk_value)
+
+    def drop(self):
+        if self.stack == [] or self.stack[-1] > self.app.hand:
+            self.stack.append(self.app.hand)
+            self.redraw()
+            self.app.drop(self.name, self.stack)
+
+    def redraw(self):
+        disk_height = 16
+        base_width = 180
+        base_top = 177
+        rod_width = 6
+        rod_top = 40
+        disk_outline = self.app.base02
+
+        img = QtGui.QImage(200, 200, QtGui.QImage.Format_ARGB32)
+        img.fill(self.app.content.backgroundRole())
+
+        painter = QtGui.QPainter()
+        painter.begin(img)
+        painter.setPen(self.app.base00)
+        painter.setBrush(self.app.base00)
+
+        painter.drawRect((img.width() - base_width) // 2, base_top,
+                         base_width, 10)
+        painter.drawRect((img.width() - rod_width) // 2, rod_top,
+                         rod_width, base_top - rod_top)
+        painter.setPen(disk_outline)
+
+        for i, x in enumerate(self.stack):
+            painter.setBrush(self.app.color_list[x - 1])
+            disk_width = 40 + 20 * (x - 1)
+            painter.drawRoundedRect((img.width() - disk_width) // 2,
+                                    base_top - 1 - (i + 1) * disk_height,
+                                    disk_width, disk_height, 3, 3)
+
+        painter.end()
+        pixmap = QtGui.QPixmap.fromImage(img)
+        self.widget.setPixmap(pixmap)
 
 
 class MainWindow(QtWidgets.QMainWindow):
@@ -13,7 +79,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(QtCore.QSize(640, 480))
 
         self.num_disks = 3
-        self.disk_height = 16
 
         # Colors for "Natural"
         self.dark_brown = QtGui.QColor(0xff71481b)   # (0xff87551f)
@@ -47,7 +112,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.zx5 = QtGui.QColor(0xff00b2b2)
         self.zx6 = QtGui.QColor(0xffb2b200)
         self.zx7 = QtGui.QColor(0xffb2b2b2)
-        self.disk_outline = self.base02
 
         menu = self.menuBar()
         menu_Game = menu.addMenu("&Game")
@@ -65,14 +129,13 @@ class MainWindow(QtWidgets.QMainWindow):
         item_G_D.triggered.connect(self.difficulty_dialog)
         item_G_Q.triggered.connect(self.close)
         item_G_R.setShortcut("Ctrl+R")
-        # alternatively: item_G_R.setShortcut(QtGui.QKeySequence("Ctrl+R"))
         item_G_D.setShortcut("Ctrl+D")
         item_G_Q.setShortcut("Ctrl+Q")
         item_G_R.setStatusTip("Restart with the same number of disks (Ctrl+R)")
         item_G_D.setStatusTip("Choose number of disks and restart (Ctrl+D)")
         item_G_Q.setStatusTip("Close the application")
 
-        menu_colors = menu.addMenu("&Colors")
+        menu_Colors = menu.addMenu("&Colors")
         item_C_N = QtWidgets.QAction(QtGui.QIcon("icons/7disks.png"),
                                      "&Natural", self)
         item_C_R = QtWidgets.QAction(QtGui.QIcon("icons/solarized.png"),
@@ -83,12 +146,12 @@ class MainWindow(QtWidgets.QMainWindow):
                                      "&Dark background", self)
         item_C_L = QtWidgets.QAction(QtGui.QIcon("icons/light.png"),
                                      "&Light background", self)
-        menu_colors.addAction(item_C_N)
-        menu_colors.addAction(item_C_R)
-        menu_colors.addAction(item_C_S)
-        menu_colors.addSeparator()
-        menu_colors.addAction(item_C_D)
-        menu_colors.addAction(item_C_L)
+        menu_Colors.addAction(item_C_N)
+        menu_Colors.addAction(item_C_R)
+        menu_Colors.addAction(item_C_S)
+        menu_Colors.addSeparator()
+        menu_Colors.addAction(item_C_D)
+        menu_Colors.addAction(item_C_L)
         item_C_N.triggered.connect(lambda: self.set_colors("natural"))
         item_C_R.triggered.connect(lambda: self.set_colors("rainbow"))
         item_C_S.triggered.connect(lambda: self.set_colors("speccy"))
@@ -102,11 +165,11 @@ class MainWindow(QtWidgets.QMainWindow):
         item_C_D.setStatusTip("Set a dark background")
         item_C_L.setStatusTip("Set a light background")
 
-        menu_help = menu.addMenu("&Help")
+        menu_Help = menu.addMenu("&Help")
         item_H_H = QtWidgets.QAction("&How to play", self)
         item_H_A = QtWidgets.QAction("&About...", self)
-        menu_help.addAction(item_H_H)
-        menu_help.addAction(item_H_A)
+        menu_Help.addAction(item_H_H)
+        menu_Help.addAction(item_H_A)
         item_H_H.triggered.connect(self.help_message)
         item_H_A.triggered.connect(self.about_message)
 
@@ -125,23 +188,21 @@ class MainWindow(QtWidgets.QMainWindow):
         self.content.setAutoFillBackground(True)
 
         layout = QtWidgets.QGridLayout()
-        self.content.push_buttons = []
-        self.content.towers = []
+        self.towers = []
 
-        for i in range(3):
-            button = QtWidgets.QPushButton()
-            button.setFixedHeight(50)
-            button.clicked.connect(functools.partial(self.pick_or_drop, i))
-            layout.addWidget(button, 0, i)
-            self.content.push_buttons.append(button)
-            tower = QtWidgets.QLabel()
-            layout.addWidget(tower, 2, i, 1, 1, QtCore.Qt.AlignCenter)
-            self.content.towers.append(tower)
+        for i, args in enumerate((("left", "1"), ("middle", "2"),
+                                  ("right", "3"))):
+            tower = Tower(self, *args)
+            self.towers.append(tower)
+            layout.addWidget(tower.pushbutton, 0, i)
+            layout.addWidget(tower.widget, 2, i, 1, 1,
+                             QtCore.Qt.AlignCenter)
 
         self.content.hand = QtWidgets.QLabel()
-        self.content.message = QtWidgets.QLabel()
         layout.addWidget(self.content.hand, 1, 0, 1, 3,
                          QtCore.Qt.AlignCenter)
+
+        self.content.message = QtWidgets.QLabel()
         layout.addWidget(self.content.message, 3, 0, 1, 3,
                          QtCore.Qt.AlignCenter)
 
@@ -154,131 +215,91 @@ class MainWindow(QtWidgets.QMainWindow):
     def init_state(self):
         self.num_moves = 0
         self.target = list(range(self.num_disks, 0, -1))
-        self.stacks = [self.target[:], [], []]    # [:] for an independent copy
+        for tower, stack in zip(self.towers, (self.target[:], [], [])):
+            tower.stack = stack
         self.hand = 0
         self.prepare_pushbuttons("pick")
         self.set_colors()
         self.content.message.setText("")
         self.statusBar().clearMessage()
 
-    def pick(self, n):
-        if self.stacks[n]:
-            self.last_pick = n
-            self.hand = self.stacks[n].pop()
-            self.draw_tower(n)
-            self.draw_hand()
-            self.statusBar().clearMessage()
-            self.prepare_pushbuttons("drop")
+    def pick(self, tower_name, disk_value):
+        self.last_pick = tower_name
+        self.hand = disk_value
+        self.draw_hand()
+        self.statusBar().clearMessage()
+        self.prepare_pushbuttons("drop")
 
-    def drop(self, n):
-        if self.stacks[n] == [] or self.stacks[n][-1] > self.hand:
-            stack = self.stacks[n]
-            stack.append(self.hand)
-            self.draw_tower(n)
-            self.hand = 0
-            self.draw_hand()
-            self.statusBar().clearMessage()
-            self.prepare_pushbuttons("pick")
-            # returning a disk to the same position won't count as a move
-            if n != self.last_pick:
-                self.num_moves += 1
-                self.content.message.setText("Moves: {}"
-                                             .format(self.num_moves))
-            # when dropping on tower 2 or 3, test if we are finished
-            if stack == self.target and (n > 0):
-                self.content.message.setText("Congratulations, puzzle solved "
-                                             "in {} moves".
-                                             format(self.num_moves))
-                for button in self.content.push_buttons:
-                    button.setIcon(QtGui.QIcon("icons/ok.png"))
-                    button.setEnabled(False)
-                    button.setStatusTip("")
+    def drop(self, tower_name, stack):
+        self.hand = 0
+        self.draw_hand()
+        self.statusBar().clearMessage()
+        self.prepare_pushbuttons("pick")
 
-    def pick_or_drop(self, n):
-        if self.hand:
-            self.drop(n)
-        else:
-            self.pick(n)
+        # returning a disk to the same position won't count as a move
+        if tower_name != self.last_pick:
+            self.num_moves += 1
+            self.content.message.setText("Moves: {}"
+                                         .format(self.num_moves))
+
+        # when dropping on tower 2 or 3, test if we are finished
+        if stack == self.target and tower_name != "left":
+            self.content.message.setText("Congratulations, puzzle"
+                                         " solved in {} moves"
+                                         .format(self.num_moves))
+            for tower in self.towers:
+                tower.pushbutton.setIcon(QtGui.QIcon("icons/ok.png"))
+                tower.pushbutton.setEnabled(False)
+                tower.pushbutton.setStatusTip("")
 
     def prepare_pushbuttons(self, for_what):
-        for i in range(3):
-            button = self.content.push_buttons[i]
-            key = "{}".format(i + 1)
-            if for_what == "pick" and self.stacks[i]:
+        for tower in self.towers:
+            button = tower.pushbutton
+            if for_what == "pick" and tower.stack:
                 button.setIcon(QtGui.QIcon("icons/up.png"))
                 button.setEnabled(True)
-                button.setShortcut(key)
+                button.setShortcut(tower.key)
                 button.setStatusTip("Pick from the {} tower ({})"
-                                    .format(["first", "second", "third"][i],
-                                            key))
+                                    .format(tower.name, tower.key))
                 button.setShortcutAutoRepeat(False)   # not working
-            elif for_what == "drop" and (self.stacks[i] == []
-                                         or self.stacks[i][-1] > self.hand):
+            elif for_what == "drop" and (tower.stack == [] or
+                                         tower.stack[-1] > self.hand):
                 button.setIcon(QtGui.QIcon("icons/down.png"))
                 button.setEnabled(True)
-                button.setShortcut(key)
+                button.setShortcut(tower.key)
                 button.setStatusTip("Drop on the {} tower ({})"
-                                    .format(["first", "second",
-                                             "third"][i], key))
+                                    .format(tower.name, tower.key))
                 button.setShortcutAutoRepeat(False)   # not working
             else:
                 button.setIcon(QtGui.QIcon("icons/forbidden.png"))
                 button.setEnabled(False)
                 button.setStatusTip("")
 
-    def draw_tower(self, n):
-        stack = self.stacks[n]
-        img = QtGui.QImage(200, 200, QtGui.QImage.Format_ARGB32)
-        img.fill(self.content.backgroundRole())
-        painter = QtGui.QPainter()
-        painter.begin(img)
-        painter.setPen(self.base00)
-        painter.setBrush(self.base00)
-        base_width = 180
-        base_top = 177
-        rod_width = 6
-        rod_top = 40
-        painter.drawRect((img.width() - base_width)//2, base_top,
-                         base_width, 10)
-        painter.drawRect((img.width() - rod_width)//2, rod_top,
-                         rod_width, base_top - rod_top)
-        painter.setPen(self.disk_outline)
-        for i, x in enumerate(stack):
-            painter.setBrush(self.color_list[x - 1])
-            disk_width = 40 + 20*(x - 1)
-            painter.drawRoundedRect((img.width() - disk_width)//2,
-                                    base_top - 1 - (i+1)*self.disk_height,
-                                    disk_width, self.disk_height, 0, 0)
-        painter.end()
-        pixmap = QtGui.QPixmap.fromImage(img)
-        self.content.towers[n].setPixmap(pixmap)
-
     def draw_hand(self):
+        disk_height = 16
+        disk_outline = self.base02
+
         img = QtGui.QImage(400, 40, QtGui.QImage.Format_ARGB32)
         img.fill(self.content.backgroundRole())
         if self.hand:
             painter = QtGui.QPainter()
             painter.begin(img)
-            painter.setPen(self.disk_outline)
+            painter.setPen(disk_outline)
             painter.setBrush(self.color_list[self.hand - 1])
             disk_width = 40 + 20*(self.hand - 1)
             painter.drawRoundedRect((img.width() - disk_width)//2,
-                                    (img.height() - self.disk_height)//2,
-                                    disk_width, self.disk_height, 0, 0)
+                                    (img.height() - disk_height)//2,
+                                    disk_width, disk_height, 0, 0)
             painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
         self.content.hand.setPixmap(pixmap)
 
     def calculate_range(self, color1, color2, n):
-        result = []
-        for i in range(n):
-            result.append(QtGui.QColor(color1.red() + i/n*(color2.red()
-                                                           - color1.red()),
-                                       color1.green() + i/n*(color2.green()
-                                                             - color1.green()),
-                                       color1.blue() + i/n*(color2.blue()
-                                                            - color1.blue())))
-        return result
+        return [QtGui.QColor(
+                        color1.red() + i/n*(color2.red() - color1.red()),
+                        color1.green() + i/n*(color2.green() - color1.green()),
+                        color1.blue() + i/n*(color2.blue() - color1.blue()))
+                for i in range(n)]
 
     def set_colors(self, setting=None):
         if setting:
@@ -295,8 +316,8 @@ class MainWindow(QtWidgets.QMainWindow):
         elif setting == "speccy":
             self.color_list = [self.zx7, self.zx6, self.zx5, self.zx4,
                                self.zx3, self.zx2, self.zx1]
-        for i in range(3):
-            self.draw_tower(i)
+        for tower in self.towers:
+            tower.redraw()
         self.draw_hand()
 
     def set_fg_bg(self, fg=None, bg=None):
@@ -341,7 +362,7 @@ class MainWindow(QtWidgets.QMainWindow):
         msg.setWindowTitle("How to play")
         msg.setIconPixmap(QtGui.QPixmap("icons/5disks_color.png"))
         msg.setText("""<center><p>To pick or drop disks, click on corresponding
-buttons or use keys 1, 2 and 3.</p>
+pushbuttons or use keys 1, 2 and 3.</p>
 <p>The goal of the game is to move the entire stack to another rod, obeying the
 following simple rules:</p>
 <ul><li>only one disk can be moved at a time</li>
