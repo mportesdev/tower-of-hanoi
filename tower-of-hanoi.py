@@ -61,7 +61,7 @@ class Tower:
 
         for i, x in enumerate(self.stack):
             painter.setBrush(self.app.color_list[x - 1])
-            disk_width = 40 + 20 * (x - 1)
+            disk_width = 20 + 20 * x
             painter.drawRoundedRect((img.width() - disk_width) // 2,
                                     base_top - 1 - (i + 1) * disk_height,
                                     disk_width, disk_height, 3, 3)
@@ -286,19 +286,23 @@ class MainWindow(QtWidgets.QMainWindow):
             painter.begin(img)
             painter.setPen(disk_outline)
             painter.setBrush(self.color_list[self.hand - 1])
-            disk_width = 40 + 20*(self.hand - 1)
-            painter.drawRoundedRect((img.width() - disk_width)//2,
-                                    (img.height() - disk_height)//2,
-                                    disk_width, disk_height, 0, 0)
+            disk_width = 20 + 20 * self.hand
+            painter.drawRoundedRect((img.width() - disk_width) // 2,
+                                    (img.height() - disk_height) // 2,
+                                    disk_width, disk_height, 3, 3)
             painter.end()
         pixmap = QtGui.QPixmap.fromImage(img)
         self.content.hand.setPixmap(pixmap)
 
-    def calculate_range(self, color1, color2, n):
+    @staticmethod
+    def calculate_range(color1, color2, n):
         return [QtGui.QColor(
-                        color1.red() + i/n*(color2.red() - color1.red()),
-                        color1.green() + i/n*(color2.green() - color1.green()),
-                        color1.blue() + i/n*(color2.blue() - color1.blue()))
+                        color1.red() + i / n * (color2.red()
+                                                - color1.red()),
+                        color1.green() + i / n * (color2.green()
+                                                  - color1.green()),
+                        color1.blue() + i / n * (color2.blue()
+                                                 - color1.blue()))
                 for i in range(n)]
 
     def set_colors(self, setting=None):
@@ -329,9 +333,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.content.setPalette(temp_pal)
 
     def difficulty_dialog(self):
-        self.dialog = QtWidgets.QDialog()
-        self.dialog.setWindowTitle("Difficulty setting")
-        self.dialog.resize(320, 200)
+        dialog = QtWidgets.QDialog()
+        dialog.setWindowTitle("Difficulty setting")
+        dialog.resize(320, 200)
         rbutton_group = QtWidgets.QButtonGroup()
         layout = QtWidgets.QGridLayout()
         for i in range(3, 8):
@@ -339,19 +343,18 @@ class MainWindow(QtWidgets.QMainWindow):
             rbutton.setIcon(QtGui.QIcon("icons/{}disks.png".format(i)))
             rbutton.setIconSize(QtCore.QSize(48, 48))
             rbutton_group.addButton(rbutton, id=i)
-            layout.addWidget(rbutton, (i - 3)//2, 1 - i % 2)
+            layout.addWidget(rbutton, (i - 3) // 2, 1 - i % 2)
         rbutton_group.button(self.num_disks).setChecked(True)
         button_OK = QtWidgets.QPushButton("OK")
         button_Cancel = QtWidgets.QPushButton("Cancel")
-        button_OK.clicked.connect(self.dialog.accept)
-        button_Cancel.clicked.connect(self.dialog.reject)
-        self.dialog.accepted.connect(lambda: self
-                                     .set_difficulty(rbutton_group
-                                                     .checkedId()))
+        button_OK.clicked.connect(dialog.accept)
+        button_Cancel.clicked.connect(dialog.reject)
+        dialog.accepted.connect(lambda: self.set_difficulty(rbutton_group
+                                                            .checkedId()))
         layout.addWidget(button_OK, 3, 0)
         layout.addWidget(button_Cancel, 3, 1)
-        self.dialog.setLayout(layout)
-        self.dialog.show()
+        dialog.setLayout(layout)
+        dialog.exec_()
 
     def set_difficulty(self, n):
         self.num_disks = n
