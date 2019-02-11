@@ -37,6 +37,31 @@ class Tower:
             self.redraw()
             self.app.drop(self.name, self.stack)
 
+    def prepare_pushbutton(self, hand):
+        # hand is empty, prepare button for picking if possible
+        if hand == 0 and self.stack:
+            self.pushbutton.setIcon(QtGui.QIcon("icons/up.png"))
+            self.pushbutton.setEnabled(True)
+            self.pushbutton.setShortcut(self.key)
+            self.pushbutton.setStatusTip("Pick from the {} tower ({})"
+                                         .format(self.name, self.key))
+            self.pushbutton.setShortcutAutoRepeat(False)   # not working
+
+        # hand is not empty, prepare button for dropping if possible
+        elif hand and (self.stack == [] or self.stack[-1] > hand):
+            self.pushbutton.setIcon(QtGui.QIcon("icons/down.png"))
+            self.pushbutton.setEnabled(True)
+            self.pushbutton.setShortcut(self.key)
+            self.pushbutton.setStatusTip("Drop on the {} tower ({})"
+                                         .format(self.name, self.key))
+            self.pushbutton.setShortcutAutoRepeat(False)   # not working
+
+        # otherwise deactivate button
+        else:
+            self.pushbutton.setIcon(QtGui.QIcon("icons/forbidden.png"))
+            self.pushbutton.setEnabled(False)
+            self.pushbutton.setStatusTip("")
+
     def redraw(self):
         disk_height = 16
         base_width = 180
@@ -214,11 +239,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def init_state(self):
         self.num_moves = 0
+        self.hand = 0
         self.target = list(range(self.num_disks, 0, -1))
         for tower, stack in zip(self.towers, (self.target[:], [], [])):
             tower.stack = stack
-        self.hand = 0
-        self.prepare_pushbuttons("pick")
+            tower.prepare_pushbutton(self.hand)
         self.set_colors()
         self.content.message.setText("")
         self.statusBar().clearMessage()
@@ -227,14 +252,16 @@ class MainWindow(QtWidgets.QMainWindow):
         self.last_pick = tower_name
         self.hand = disk_value
         self.draw_hand()
+        for tower in self.towers:
+            tower.prepare_pushbutton(self.hand)
         self.statusBar().clearMessage()
-        self.prepare_pushbuttons("drop")
 
     def drop(self, tower_name, stack):
         self.hand = 0
         self.draw_hand()
+        for tower in self.towers:
+            tower.prepare_pushbutton(self.hand)
         self.statusBar().clearMessage()
-        self.prepare_pushbuttons("pick")
 
         # returning a disk to the same position won't count as a move
         if tower_name != self.last_pick:
@@ -251,29 +278,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 tower.pushbutton.setIcon(QtGui.QIcon("icons/ok.png"))
                 tower.pushbutton.setEnabled(False)
                 tower.pushbutton.setStatusTip("")
-
-    def prepare_pushbuttons(self, for_what):
-        for tower in self.towers:
-            button = tower.pushbutton
-            if for_what == "pick" and tower.stack:
-                button.setIcon(QtGui.QIcon("icons/up.png"))
-                button.setEnabled(True)
-                button.setShortcut(tower.key)
-                button.setStatusTip("Pick from the {} tower ({})"
-                                    .format(tower.name, tower.key))
-                button.setShortcutAutoRepeat(False)   # not working
-            elif for_what == "drop" and (tower.stack == [] or
-                                         tower.stack[-1] > self.hand):
-                button.setIcon(QtGui.QIcon("icons/down.png"))
-                button.setEnabled(True)
-                button.setShortcut(tower.key)
-                button.setStatusTip("Drop on the {} tower ({})"
-                                    .format(tower.name, tower.key))
-                button.setShortcutAutoRepeat(False)   # not working
-            else:
-                button.setIcon(QtGui.QIcon("icons/forbidden.png"))
-                button.setEnabled(False)
-                button.setStatusTip("")
 
     def draw_hand(self):
         disk_height = 16
