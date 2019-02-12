@@ -2,6 +2,7 @@
 # coding: utf-8
 
 from PySide2 import QtWidgets, QtCore, QtGui
+import utils
 
 
 class Tower:
@@ -298,26 +299,22 @@ class MainWindow(QtWidgets.QMainWindow):
         pixmap = QtGui.QPixmap.fromImage(img)
         self.content.hand.setPixmap(pixmap)
 
-    @staticmethod
-    def calculate_range(color1, color2, n):
-        return [QtGui.QColor(
-                        color1.red() + i / n * (color2.red()
-                                                - color1.red()),
-                        color1.green() + i / n * (color2.green()
-                                                  - color1.green()),
-                        color1.blue() + i / n * (color2.blue()
-                                                 - color1.blue()))
-                for i in range(n)]
-
     def set_colors(self, setting=None):
         if setting:
             self.color_setting = setting
         else:
             setting = self.color_setting
+
         if setting == "natural":
-            self.color_list = self.calculate_range(self.dark_brown,
-                                                   self.light_brown,
-                                                   self.num_disks)
+            reds = utils.even_steps(self.dark_brown.red(),
+                                    self.light_brown.red(), self.num_disks)
+            greens = utils.even_steps(self.dark_brown.green(),
+                                      self.light_brown.green(), self.num_disks)
+            blues = utils.even_steps(self.dark_brown.blue(),
+                                     self.light_brown.blue(), self.num_disks)
+            self.color_list = [QtGui.QColor(r, g, b, 255)
+                               for r, g, b in zip(reds, greens, blues)]
+
         elif setting == "rainbow":
             self.color_list = [self.red, self.orange, self.yellow, self.green,
                                self.cyan, self.blue, self.violet]
