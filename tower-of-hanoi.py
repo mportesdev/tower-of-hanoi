@@ -3,6 +3,7 @@
 
 from PySide2 import QtWidgets, QtCore, QtGui
 import utils
+import colors
 
 
 class Tower:
@@ -69,24 +70,27 @@ class Tower:
         base_top = 177
         rod_width = 6
         rod_top = 40
-        disk_outline = self.app.base02
 
         img = QtGui.QImage(200, 200, QtGui.QImage.Format_ARGB32)
         img.fill(self.app.content.backgroundRole())
 
         painter = QtGui.QPainter()
         painter.begin(img)
-        painter.setPen(self.app.base00)
-        painter.setBrush(self.app.base00)
+
+        # draw base & rod
+        painter.setPen(colors.ROD)
+        painter.setBrush(QtGui.QBrush(colors.ROD))
 
         painter.drawRect((img.width() - base_width) // 2, base_top,
                          base_width, 10)
         painter.drawRect((img.width() - rod_width) // 2, rod_top,
                          rod_width, base_top - rod_top)
-        painter.setPen(disk_outline)
+
+        # draw disks
+        painter.setPen(colors.OUTLINE)
 
         for i, x in enumerate(self.stack):
-            painter.setBrush(self.app.color_list[x - 1])
+            painter.setBrush(QtGui.QBrush(self.app.color_list[x - 1]))
             disk_width = 20 + 20 * x
             painter.drawRoundedRect((img.width() - disk_width) // 2,
                                     base_top - 1 - (i + 1) * disk_height,
@@ -105,39 +109,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resize(QtCore.QSize(640, 480))
 
         self.num_disks = 3
-
-        # Colors for "Natural"
-        self.dark_brown = QtGui.QColor(0xff71481b)   # (0xff87551f)
-        self.light_brown = QtGui.QColor(0xffda9e5e)  # (0xffd59149)
-
-        # Colors for backgrounds
-        self.base03 = QtGui.QColor(0xff002b36)    # Solarized base03
-        self.base02 = QtGui.QColor(0xff073642)              # base02
-        self.base01 = QtGui.QColor(0xff586e75)              # base01
-        self.base00 = QtGui.QColor(0xff657b83)              # base00
-        # self.base0 = QtGui.QColor(0xff839496)               # base0
-        self.base1 = QtGui.QColor(0xff93a1a1)               # base1
-        # self.base2 = QtGui.QColor(0xffeee8d5)               # base2
-        self.base3 = QtGui.QColor(0xfffdf6e3)               # base3
-
-        # Colors for "Rainbow"
-        self.yellow = QtGui.QColor(0xffb58900)              # yellow
-        self.orange = QtGui.QColor(0xffcb4b16)              # orange
-        self.red = QtGui.QColor(0xffdc322f)                 # red
-        # self.magenta = QtGui.QColor(0xffd33682)             # magenta
-        self.violet = QtGui.QColor(0xff6c71c4)              # violet
-        self.blue = QtGui.QColor(0xff268bd2)                # blue
-        self.cyan = QtGui.QColor(0xff2aa198)                # cyan
-        self.green = QtGui.QColor(0xff859900)               # green
-
-        # Colors for "Speccy"
-        self.zx1 = QtGui.QColor(0xff0000b2)
-        self.zx2 = QtGui.QColor(0xffb20000)
-        self.zx3 = QtGui.QColor(0xffb200b2)
-        self.zx4 = QtGui.QColor(0xff00b200)
-        self.zx5 = QtGui.QColor(0xff00b2b2)
-        self.zx6 = QtGui.QColor(0xffb2b200)
-        self.zx7 = QtGui.QColor(0xffb2b2b2)
 
         menu = self.menuBar()
         menu_Game = menu.addMenu("&Game")
@@ -181,10 +152,10 @@ class MainWindow(QtWidgets.QMainWindow):
         item_C_N.triggered.connect(lambda: self.set_colors("natural"))
         item_C_R.triggered.connect(lambda: self.set_colors("rainbow"))
         item_C_S.triggered.connect(lambda: self.set_colors("speccy"))
-        item_C_D.triggered.connect(lambda: self.set_fg_bg(fg=self.base1,
-                                                          bg=self.base03))
-        item_C_L.triggered.connect(lambda: self.set_fg_bg(fg=self.base01,
-                                                          bg=self.base3))
+        item_C_D.triggered.connect(lambda: self.set_fg_bg(fg=colors.LIGHT_FG,
+                                                          bg=colors.DARK_BG))
+        item_C_L.triggered.connect(lambda: self.set_fg_bg(fg=colors.DARK_FG,
+                                                          bg=colors.LIGHT_BG))
         item_C_N.setStatusTip("Shades of brown")
         item_C_R.setStatusTip("Rainbow")
         item_C_S.setStatusTip("ZX Spectrum")
@@ -235,7 +206,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.content.setLayout(layout)
         self.setCentralWidget(self.content)
         self.color_setting = "rainbow"
-        self.set_fg_bg(fg=self.base1, bg=self.base03)
+        self.set_fg_bg(fg=colors.LIGHT_FG, bg=colors.DARK_BG)
         self.init_state()
 
     def init_state(self):
@@ -282,15 +253,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def draw_hand(self):
         disk_height = 16
-        disk_outline = self.base02
 
         img = QtGui.QImage(400, 40, QtGui.QImage.Format_ARGB32)
         img.fill(self.content.backgroundRole())
         if self.hand:
             painter = QtGui.QPainter()
             painter.begin(img)
-            painter.setPen(disk_outline)
-            painter.setBrush(self.color_list[self.hand - 1])
+            painter.setPen(colors.OUTLINE)
+            painter.setBrush(QtGui.QBrush(self.color_list[self.hand - 1]))
             disk_width = 20 + 20 * self.hand
             painter.drawRoundedRect((img.width() - disk_width) // 2,
                                     (img.height() - disk_height) // 2,
@@ -306,21 +276,26 @@ class MainWindow(QtWidgets.QMainWindow):
             setting = self.color_setting
 
         if setting == "natural":
-            reds = utils.even_steps(self.dark_brown.red(),
-                                    self.light_brown.red(), self.num_disks)
-            greens = utils.even_steps(self.dark_brown.green(),
-                                      self.light_brown.green(), self.num_disks)
-            blues = utils.even_steps(self.dark_brown.blue(),
-                                     self.light_brown.blue(), self.num_disks)
+            reds = utils.even_steps(colors.DARK_BROWN[1],
+                                    colors.LIGHT_BROWN[1], self.num_disks)
+            greens = utils.even_steps(colors.DARK_BROWN[2],
+                                      colors.LIGHT_BROWN[2], self.num_disks)
+            blues = utils.even_steps(colors.DARK_BROWN[3],
+                                     colors.LIGHT_BROWN[3], self.num_disks)
             self.color_list = [QtGui.QColor(r, g, b, 255)
                                for r, g, b in zip(reds, greens, blues)]
 
         elif setting == "rainbow":
-            self.color_list = [self.red, self.orange, self.yellow, self.green,
-                               self.cyan, self.blue, self.violet]
+            self.color_list = [colors.RED, colors.ORANGE, colors.YELLOW,
+                               colors.GREEN, colors.CYAN, colors.BLUE,
+                               colors.VIOLET]
+
         elif setting == "speccy":
-            self.color_list = [self.zx7, self.zx6, self.zx5, self.zx4,
-                               self.zx3, self.zx2, self.zx1]
+            self.color_list = [colors.SPECCY_WHITE, colors.SPECCY_YELLOW,
+                               colors.SPECCY_CYAN, colors.SPECCY_GREEN,
+                               colors.SPECCY_MAGENTA, colors.SPECCY_RED,
+                               colors.SPECCY_BLUE]
+
         for tower in self.towers:
             tower.redraw()
         self.draw_hand()
