@@ -15,6 +15,7 @@ def even_steps(start, stop, n, include_stop=True, decimal_places=6):
     >>> list(even_steps(2, 3, 4, decimal_places=2))
     [2.0, 2.33, 2.67, 3.0]
     """
+
     if include_stop:
         step = (stop - start) / (n - 1)
     else:

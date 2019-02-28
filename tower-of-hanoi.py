@@ -276,12 +276,15 @@ class MainWindow(QtWidgets.QMainWindow):
             setting = self.color_setting
 
         if setting == "natural":
-            reds = utils.even_steps(colors.DARK_BROWN[1],
-                                    colors.LIGHT_BROWN[1], self.num_disks)
-            greens = utils.even_steps(colors.DARK_BROWN[2],
-                                      colors.LIGHT_BROWN[2], self.num_disks)
-            blues = utils.even_steps(colors.DARK_BROWN[3],
-                                     colors.LIGHT_BROWN[3], self.num_disks)
+            # calculate scales of color components
+            reds = utils.even_steps(colors.DARK_BROWN["R"],
+                                    colors.LIGHT_BROWN["R"], self.num_disks)
+            greens = utils.even_steps(colors.DARK_BROWN["G"],
+                                      colors.LIGHT_BROWN["G"], self.num_disks)
+            blues = utils.even_steps(colors.DARK_BROWN["B"],
+                                     colors.LIGHT_BROWN["B"], self.num_disks)
+
+            # generate colors from components
             self.color_list = [QtGui.QColor(r, g, b, 255)
                                for r, g, b in zip(reds, greens, blues)]
 
@@ -314,12 +317,14 @@ class MainWindow(QtWidgets.QMainWindow):
         dialog.resize(320, 200)
         rbutton_group = QtWidgets.QButtonGroup()
         layout = QtWidgets.QGridLayout()
+
         for i in range(3, 8):
             rbutton = QtWidgets.QRadioButton("{} disks".format(i))
             rbutton.setIcon(QtGui.QIcon("icons/{}disks.png".format(i)))
             rbutton.setIconSize(QtCore.QSize(48, 48))
             rbutton_group.addButton(rbutton, id=i)
             layout.addWidget(rbutton, (i - 3) // 2, 1 - i % 2)
+
         rbutton_group.button(self.num_disks).setChecked(True)
         button_OK = QtWidgets.QPushButton("OK")
         button_Cancel = QtWidgets.QPushButton("Cancel")
